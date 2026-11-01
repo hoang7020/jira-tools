@@ -20,7 +20,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
@@ -39,6 +39,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.semantics.Role
@@ -54,6 +55,7 @@ import com.jiratools.domain.ColumnKey
 import com.jiratools.domain.QueryState
 import com.jiratools.domain.SortState
 import com.jiratools.domain.Ticket
+import com.jiratools.domain.queryTreeBranch
 import com.jiratools.domain.userMessage
 import com.jiratools.platform.TableHorizontalScrollbar
 import com.jiratools.platform.TableVerticalScrollbar
@@ -167,9 +169,10 @@ private fun SuccessTable(
                     state = rowsState,
                     modifier = Modifier.fillMaxHeight().weight(1f),
                 ) {
-                    items(state.tickets, key = { it.key }) { ticket ->
+                    itemsIndexed(state.tickets, key = { _, ticket -> ticket.key }) { _, ticket ->
                         TicketRow(
                             ticket = ticket,
+                            treeBranch = queryTreeBranch(state.tickets, ticket),
                             columns = columns,
                             layout = layout,
                             horizontalScroll = horizontalScroll,
@@ -346,6 +349,7 @@ private fun LoadingView() {
 @Composable
 private fun TicketRow(
     ticket: Ticket,
+    treeBranch: com.jiratools.domain.QueryTreeBranch,
     columns: List<ColumnKey>,
     layout: TableColumnLayout,
     horizontalScroll: ScrollState,
@@ -358,6 +362,7 @@ private fun TicketRow(
         modifier =
             Modifier
                 .fillMaxWidth()
+                .background(if (ticket.isParent) Color.Gray.copy(alpha = 0.16f) else Color.Transparent)
                 .then(if (reserveActionSpace) Modifier.height(48.dp) else Modifier)
                 .clickable(onClick = onOpen)
                 .pointerHoverIcon(PointerIcon.Hand)
@@ -366,7 +371,7 @@ private fun TicketRow(
     ) {
         if (ColumnKey.KEY in columns) {
             Text(
-                text = ticket.value(ColumnKey.KEY),
+                text = listOfNotNull(treeBranch.marker, ticket.value(ColumnKey.KEY)).joinToString(" "),
                 modifier = Modifier.width(layout.keyWidth).padding(horizontal = 4.dp),
                 style = MaterialTheme.typography.bodySmall,
                 maxLines = CELL_MAX_LINES,

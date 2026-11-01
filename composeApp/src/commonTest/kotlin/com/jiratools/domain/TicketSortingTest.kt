@@ -11,6 +11,34 @@ import kotlin.test.assertEquals
  */
 class TicketSortingTest {
     @Test
+    fun sortingKeepsParentAndSubtasksTogether() {
+        val parentA =
+            Ticket(
+                key = "A-1",
+                summary = "Alpha",
+                status = "Open",
+                isParent = true,
+            )
+        val childA =
+            Ticket(
+                key = "A-2",
+                summary = "Zulu",
+                status = "Open",
+                parentKey = "A-1",
+                isSubtask = true,
+            )
+        val independent = Ticket(key = "B-1", summary = "Beta", status = "Open")
+
+        val sorted =
+            sortTickets(
+                listOf(childA, independent, parentA),
+                SortState(ColumnKey.SUMMARY, ascending = true),
+            )
+
+        assertEquals(listOf("A-1", "A-2", "B-1"), sorted.map { it.key })
+    }
+
+    @Test
     fun columnNullKeepsTheStoredOrder() {
         val tickets = sample()
 

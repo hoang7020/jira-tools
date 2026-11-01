@@ -11,6 +11,7 @@ import com.jiratools.domain.QueryState
 import com.jiratools.domain.SortState
 import com.jiratools.domain.Ticket
 import com.jiratools.domain.UserPreferences
+import com.jiratools.domain.groupQueryResultTickets
 import com.jiratools.platform.ioDispatcher
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -110,7 +111,8 @@ class QueryViewModel(
                     return
                 }
                 lastPageToken = page.nextPageToken
-                mutableState.value = QueryState.Success(page.tickets, hasMore = !page.isLast)
+                mutableState.value =
+                    QueryState.Success(groupQueryResultTickets(page.tickets), hasMore = !page.isLast)
                 refreshApproximateCount(jql)
             }
             is ApiResult.Failure -> mutableState.value = QueryState.Error(result.error, jql)
@@ -135,7 +137,11 @@ class QueryViewModel(
                     val page = result.value
                     lastPageToken = page.nextPageToken
                     val merged = merge(current.tickets, page.tickets)
-                    mutableState.value = current.copy(tickets = merged, hasMore = !page.isLast)
+                    mutableState.value =
+                        current.copy(
+                            tickets = groupQueryResultTickets(merged),
+                            hasMore = !page.isLast,
+                        )
                 }
                 is ApiResult.Failure -> mutableState.value = QueryState.Error(result.error, mutableJql.value)
             }

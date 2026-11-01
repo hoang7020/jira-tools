@@ -25,7 +25,32 @@ fun sortTickets(
             ColumnKey.DUE_DATE -> compareBy { it.dueDate?.let(::parseCalendarDate) }
             else -> compareBy<Ticket> { it.sortValue(column).lowercase() }
         }
-    return tickets.sortedWith(if (sort.ascending) byColumn else byColumn.reversed())
+    val grouped = groupQueryResultTickets(tickets)
+    val groups = ticketGroups(grouped)
+    val comparator = if (sort.ascending) byColumn else byColumn.reversed()
+    return groups.sortedWith(compareBy(comparator) { it.first() }).flatten()
+}
+
+private fun ticketGroups(tickets: List<Ticket>): List<List<Ticket>> {
+    val groups = mutableListOf<List<Ticket>>()
+    var index = 0
+    while (index < tickets.size) {
+        val ticket = tickets[index]
+        if (ticket.isParent) {
+            val children = tickets.drop(index + 1).takeWhile { it.parentKey == ticket.key && it.isSubtask }
+            groups += listOf(ticket) + children
+            index += children.size + 1
+        } else if (!ticket.isSubtask ||
+            ticket.parentKey == null ||
+            tickets.none { it.key == ticket.parentKey && it.isParent }
+        ) {
+            groups += listOf(ticket)
+            index++
+        } else {
+            index++
+        }
+    }
+    return groups
 }
 
 /**

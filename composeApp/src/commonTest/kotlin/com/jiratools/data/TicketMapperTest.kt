@@ -191,6 +191,50 @@ class TicketMapperTest {
         assertTrue("duedate" in TicketMapper.requestFields)
     }
 
+    @Test
+    fun mapsParentSubtaskRelationsAndParentFlag() {
+        val parent =
+            TicketMapper.toTicket(
+                IssueDto(
+                    key = "HSP-10",
+                    fields =
+                        FieldsDto(
+                            subtasks = listOf(SubtaskDto(key = "HSP-11")),
+                        ),
+                ),
+            )
+        val child =
+            TicketMapper.toTicket(
+                IssueDto(
+                    key = "HSP-11",
+                    fields =
+                        FieldsDto(
+                            parent = ParentDto(key = "HSP-10"),
+                            issuetype = IssueTypeDto(subtask = true),
+                        ),
+                ),
+            )
+
+        assertTrue(parent!!.hasKnownSubtasks)
+        assertTrue(parent.isParent)
+        assertEquals("HSP-10", child?.parentKey)
+        assertTrue(child?.isSubtask == true)
+        assertTrue("parent" in TicketMapper.requestFields)
+        assertTrue("issuetype" in TicketMapper.requestFields)
+        assertTrue("subtasks" in TicketMapper.requestFields)
+    }
+
+    @Test
+    fun parentWithNoVisibleSubtaskIsNotMarkedParentBySubtaskVisibility() {
+        val dto =
+            IssueDto(
+                key = "HSP-12",
+                fields = FieldsDto(subtasks = emptyList()),
+            )
+
+        assertEquals(false, TicketMapper.toTicket(dto)?.isParent)
+    }
+
     private fun issue(
         key: String = "HSP-1",
         summary: String = "Sai số lượng hàng tồn",

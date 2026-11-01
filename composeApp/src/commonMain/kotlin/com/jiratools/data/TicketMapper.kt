@@ -17,6 +17,12 @@ object TicketMapper {
         val key = dto.key?.trim()
         if (key.isNullOrEmpty()) return null
         val fields = dto.fields
+        val parentKey =
+            fields
+                ?.parent
+                ?.key
+                ?.trim()
+                ?.takeIf { it.isNotEmpty() }
         return Ticket(
             key = key,
             summary = fields?.summary.orEmpty(),
@@ -29,6 +35,10 @@ object TicketMapper {
             updatedAtMillis = parseUpdatedAtMillis(fields?.updated),
             originalExpectedTime = fields?.timetracking?.originalEstimate,
             dueDate = fields?.dueDate,
+            parentKey = parentKey,
+            hasKnownSubtasks = fields?.subtasks.orEmpty().isNotEmpty(),
+            isSubtask = fields?.issuetype?.subtask == true,
+            isParent = fields?.subtasks.orEmpty().isNotEmpty(),
         )
     }
 
@@ -37,7 +47,16 @@ object TicketMapper {
         dto: SearchJqlResponse,
         approximateTotal: Int? = null,
     ): QueryPage {
-        val tickets = dto.issues.mapNotNull(::toTicket)
+        val ticketsWithoutChildParents = dto.issues.mapNotNull(::toTicket)
+        val resultKeys = ticketsWithoutChildParents.mapTo(mutableSetOf()) { it.key }
+        val knownParentKeys =
+            ticketsWithoutChildParents
+                .mapNotNull { ticket -> ticket.parentKey?.takeIf { resultKeys.contains(it) } }
+                .toSet()
+        val tickets =
+            ticketsWithoutChildParents.map { ticket ->
+                ticket.copy(isParent = ticket.isParent || ticket.key in knownParentKeys)
+            }
         val isLast = dto.isLast ?: dto.nextPageToken.isNullOrBlank()
         return QueryPage(
             tickets = tickets,
@@ -73,7 +92,18 @@ object TicketMapper {
 
     /** Các trường Jira cần yêu cầu cho mỗi ticket trong bảng. */
     val requestFields: List<String> =
-        listOf("summary", "status", "assignee", "priority", "updated", "timetracking", "duedate")
+        listOf(
+            "summary",
+            "status",
+            "assignee",
+            "priority",
+            "updated",
+            "timetracking",
+            "duedate",
+            "parent",
+            "issuetype",
+            "subtasks",
+        )
 
     private val JIRA_OFFSET_PATTERN = Regex("([+-]\\d{2})(\\d{2})$")
 }

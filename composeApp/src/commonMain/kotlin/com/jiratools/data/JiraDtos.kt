@@ -60,6 +60,24 @@ data class FieldsDto(
     val timetracking: TimeTrackingDto? = null,
     @SerialName("duedate")
     val dueDate: String? = null,
+    val parent: ParentDto? = null,
+    val issuetype: IssueTypeDto? = null,
+    val subtasks: List<SubtaskDto> = emptyList(),
+)
+
+@Serializable
+data class ParentDto(
+    val key: String? = null,
+)
+
+@Serializable
+data class IssueTypeDto(
+    val subtask: Boolean = false,
+)
+
+@Serializable
+data class SubtaskDto(
+    val key: String? = null,
 )
 
 @Serializable

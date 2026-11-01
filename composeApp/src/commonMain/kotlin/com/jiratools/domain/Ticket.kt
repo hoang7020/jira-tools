@@ -29,6 +29,10 @@ data class Ticket(
     val realDueDate: String? = null,
     val realDueAtMillis: Long? = null,
     val dueDate: String? = null,
+    val parentKey: String? = null,
+    val hasKnownSubtasks: Boolean = false,
+    val isSubtask: Boolean = false,
+    val isParent: Boolean = false,
 )
 
 /** Một trang kết quả tìm kiếm (data-model, mục 3). */
