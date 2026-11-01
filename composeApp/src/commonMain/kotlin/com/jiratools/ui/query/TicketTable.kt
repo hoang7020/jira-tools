@@ -55,6 +55,7 @@ import com.jiratools.domain.ColumnKey
 import com.jiratools.domain.QueryState
 import com.jiratools.domain.SortState
 import com.jiratools.domain.Ticket
+import com.jiratools.domain.isOverdueAt
 import com.jiratools.domain.queryTreeBranch
 import com.jiratools.domain.userMessage
 import com.jiratools.platform.TableHorizontalScrollbar
@@ -90,6 +91,8 @@ fun TicketTable(
     onOpenTicket: (Ticket) -> Unit,
     rowActions: Map<String, TicketRowActionState> = emptyMap(),
     onRowAction: ((Ticket) -> Unit)? = null,
+    highlightOverdueRows: Boolean = false,
+    nowAtMillis: Long? = null,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier.fillMaxSize()) {
@@ -112,6 +115,8 @@ fun TicketTable(
                         onOpenTicket = onOpenTicket,
                         rowActions = rowActions,
                         onRowAction = onRowAction,
+                        highlightOverdueRows = highlightOverdueRows,
+                        nowAtMillis = nowAtMillis,
                     )
             }
         }
@@ -137,6 +142,8 @@ private fun SuccessTable(
     onOpenTicket: (Ticket) -> Unit,
     rowActions: Map<String, TicketRowActionState>,
     onRowAction: ((Ticket) -> Unit)?,
+    highlightOverdueRows: Boolean,
+    nowAtMillis: Long?,
 ) {
     // Vào composition ở mỗi truy vấn mới (khi đó trạng thái trước là Loading) nên danh sách bắt đầu
     // từ đầu; "Tải thêm" giữ nguyên vị trí cuộn vì bảng không rời composition (FR-014).
@@ -180,6 +187,10 @@ private fun SuccessTable(
                             actionState = rowActions[ticket.key],
                             onRowAction = onRowAction?.let { action -> { action(ticket) } },
                             reserveActionSpace = onRowAction != null && ColumnKey.DUE_DATE in columns,
+                            highlightOverdue =
+                                highlightOverdueRows &&
+                                    nowAtMillis != null &&
+                                    ticket.isOverdueAt(nowAtMillis),
                         )
                         HorizontalDivider()
                     }
@@ -357,13 +368,19 @@ private fun TicketRow(
     actionState: TicketRowActionState?,
     onRowAction: (() -> Unit)?,
     reserveActionSpace: Boolean,
+    highlightOverdue: Boolean,
 ) {
     Row(
         modifier =
             Modifier
                 .fillMaxWidth()
-                .background(if (ticket.isParent) Color.Gray.copy(alpha = 0.16f) else Color.Transparent)
-                .then(if (reserveActionSpace) Modifier.height(48.dp) else Modifier)
+                .background(
+                    when {
+                        highlightOverdue -> Color(0xFFFFCDD2)
+                        ticket.isParent -> Color.Gray.copy(alpha = 0.16f)
+                        else -> Color.Transparent
+                    },
+                ).then(if (reserveActionSpace) Modifier.height(48.dp) else Modifier)
                 .clickable(onClick = onOpen)
                 .pointerHoverIcon(PointerIcon.Hand)
                 .padding(vertical = 6.dp, horizontal = 4.dp),

@@ -3,6 +3,7 @@ package com.jiratools.ui.saved
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.Arrangement
@@ -37,6 +38,8 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.PointerIcon
+import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -118,6 +121,7 @@ fun SavedTableCalendarArea(
     calendarReferenceMillis: Long,
     projection: SavedTableCalendarProjection,
     onBack: () -> Unit,
+    onOpenTicket: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val initialRange =
@@ -286,7 +290,7 @@ fun SavedTableCalendarArea(
                     modifier = Modifier.fillMaxWidth().height(ROW_HEIGHT),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    TicketCalendarLabel(row = row)
+                    TicketCalendarLabel(row = row, onOpenTicket = onOpenTicket)
                     if (dayCount > 0) {
                         CalendarTimelineRow(
                             row = row,
@@ -359,7 +363,10 @@ private fun CalendarDayHeader(date: LocalDate) {
 }
 
 @Composable
-private fun TicketCalendarLabel(row: SavedTableCalendarRow) {
+private fun TicketCalendarLabel(
+    row: SavedTableCalendarRow,
+    onOpenTicket: (String) -> Unit,
+) {
     val statusMessage =
         listOfNotNull(
             row.issue.message(),
@@ -378,6 +385,10 @@ private fun TicketCalendarLabel(row: SavedTableCalendarRow) {
     ) {
         Text(
             text = row.ticketKey,
+            modifier =
+                Modifier
+                    .pointerHoverIcon(PointerIcon.Hand)
+                    .clickable { onOpenTicket(row.ticketKey) },
             style = MaterialTheme.typography.bodySmall,
             fontWeight = FontWeight.SemiBold,
             maxLines = 1,

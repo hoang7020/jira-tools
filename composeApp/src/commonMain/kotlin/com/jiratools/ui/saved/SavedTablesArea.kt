@@ -19,7 +19,11 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -37,6 +41,7 @@ import com.jiratools.domain.sortTickets
 import com.jiratools.platform.AppClock
 import com.jiratools.ui.query.TicketRowActionState
 import com.jiratools.ui.query.TicketTable
+import kotlinx.coroutines.delay
 
 private val LIST_WIDTH = 280.dp
 private const val SINGLE_LINE = 1
@@ -73,6 +78,13 @@ fun SavedTablesArea(
     onDismissMessage: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    var currentMillis by remember { mutableLongStateOf(clock.nowMillis()) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(1_000)
+            currentMillis = clock.nowMillis()
+        }
+    }
     Column(modifier = modifier.fillMaxSize()) {
         SavedMessageBanner(message = state.message, onDismiss = onDismissMessage)
         TimeZoneWarningBanner(warning = state.timeZoneWarning)
@@ -127,6 +139,7 @@ fun SavedTablesArea(
                                     )
                                 },
                         onUpdateDueDate = { ticketKey -> onUpdateDueDate(selected.id, ticketKey) },
+                        nowAtMillis = currentMillis,
                     )
                 }
             }
@@ -259,6 +272,7 @@ private fun SavedTableDetail(
     onOpenTicket: (String) -> Unit,
     rowActions: Map<String, TicketRowActionState>,
     onUpdateDueDate: (String) -> Unit,
+    nowAtMillis: Long,
 ) {
     val sorted = remember(table.tickets, sort) { sortTickets(table.tickets, sort) }
     val calendarProjection =
@@ -294,6 +308,7 @@ private fun SavedTableDetail(
                 calendarReferenceMillis = checkNotNull(calendarReferenceMillis),
                 projection = projection,
                 onBack = onCloseCalendar,
+                onOpenTicket = onOpenTicket,
                 modifier = Modifier.fillMaxSize(),
             )
         } else {
@@ -356,6 +371,8 @@ private fun SavedTableDetail(
                 onOpenTicket = { ticket -> onOpenTicket(ticket.key) },
                 rowActions = rowActions,
                 onRowAction = { ticket -> onUpdateDueDate(ticket.key) },
+                highlightOverdueRows = true,
+                nowAtMillis = nowAtMillis,
                 modifier = Modifier.padding(top = 8.dp),
             )
         }

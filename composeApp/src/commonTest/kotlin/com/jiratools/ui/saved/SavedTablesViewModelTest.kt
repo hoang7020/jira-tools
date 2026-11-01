@@ -940,6 +940,19 @@ class SavedTablesViewModelTest {
         }
 
     @Test
+    fun openTicketExplainsWhenTheBrowserCannotOpenTheTicket() =
+        runTest {
+            val failingOpener = RecordingUrlOpener(alwaysFail = true)
+            val viewModel = viewModelWithSavedTables(count = 1, openerOverride = failingOpener)
+            val id = tablesOf(viewModel).single().id
+
+            val message = viewModel.openTicket(tableId = id, ticketKey = "HSP-1")
+
+            assertNotNull(message, "Lỗi mở trình duyệt phải được báo cho người dùng")
+            assertEquals(listOf("$BASE_URL/browse/HSP-1"), failingOpener.openedUrls)
+        }
+
+    @Test
     fun refreshIsRefusedWithoutAConnection() =
         runTest {
             val viewModel = viewModelWithSavedTables(count = 1)
@@ -1746,22 +1759,25 @@ class SavedTablesViewModelTest {
         jiraBaseUrl: String = BASE_URL,
         jiraTimeZone: String? = null,
         engine: MockEngine = this.engine,
+        openerOverride: RecordingUrlOpener = opener,
     ): SavedTablesViewModel =
         viewModelWithTables(
             tables = (1..count).map { index -> savedTable(name = "Bảng $index", jiraBaseUrl = jiraBaseUrl) },
             engine = engine,
+            openerOverride = openerOverride,
         )
 
     private suspend fun viewModelWithTables(
         tables: List<SavedTable>,
         engine: MockEngine = this.engine,
         dynamicStartTimes: List<DynamicStartTimeRecord> = emptyList(),
+        openerOverride: RecordingUrlOpener = opener,
     ): SavedTablesViewModel {
         SavedTableStore(paths = paths, dispatcher = UnconfinedTestDispatcher())
             .save(SavedTableCatalog(tables = tables, dynamicStartTimes = dynamicStartTimes))
         // Bộ đếm chỉ tính các lần ghi của kịch bản đang kiểm thử, không tính bước dựng dữ liệu ban đầu.
         paths.savedTablesWrites = 0
-        return viewModel(engine = engine).also { it.load() }
+        return viewModel(engine = engine, openerOverride = openerOverride).also { it.load() }
     }
 
     private fun searchPage(
@@ -1816,11 +1832,14 @@ class SavedTablesViewModelTest {
         return state.tables
     }
 
-    private fun viewModel(engine: MockEngine = this.engine): SavedTablesViewModel =
+    private fun viewModel(
+        engine: MockEngine = this.engine,
+        openerOverride: RecordingUrlOpener = opener,
+    ): SavedTablesViewModel =
         SavedTablesViewModel(
             store = SavedTableStore(paths = paths, dispatcher = UnconfinedTestDispatcher()),
             clock = clock,
-            urlOpener = opener,
+            urlOpener = openerOverride,
             apiClient =
                 JiraApiClient(
                     client = HttpClientFactory.create(engine),
