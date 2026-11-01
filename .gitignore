@@ -1,0 +1,35 @@
+# Gradle
+.gradle/
+build/
+
+# Kotlin
+.kotlin/
+
+# IDE
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+
+# Compose Desktop / JVM
+*.hprof
+hs_err_pid*.log
+replay_pid*.log
+
+# Logs & tệp tạm
+*.log
+*.tmp
+*.swp
+
+# Hệ điều hành
+.DS_Store
+Thumbs.db
+
+# Cấu hình riêng của máy và bí mật cục bộ
+local.properties
+.env
+.env.*
+
+# Tệp cấu hình của ứng dụng (token nằm trong keychain, không bao giờ ở đây)
+config.json
